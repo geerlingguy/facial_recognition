@@ -4,9 +4,43 @@
 from imutils.video import VideoStream
 from imutils.video import FPS
 import face_recognition
+import threading
 import pickle
 import time
 import cv2
+
+# Try importing the GPIO library.
+try:
+    import RPi.GPIO as GPIO
+except ModuleNotFoundError:
+    print("RPi module not found. Ignoring blow jobs.\n")
+
+
+# Blow.
+def blow():
+    try:
+        # Set up GPIO
+        servo_pin = 21  # GPIO Pin where servo is connected
+        GPIO.setmode(GPIO.BCM)
+
+        # Define the Pin numbering type and define Servo Pin as output pin
+        GPIO.setup(servo_pin, GPIO.OUT)
+        p = GPIO.PWM(servo_pin, 50)  # PWM channel at 50 Hz frequency
+        p.start(9)  # Zero duty cycle initially
+
+        # Blow.
+        time.sleep(0.1)
+        p.ChangeDutyCycle(12.5)
+        time.sleep(3)
+        p.ChangeDutyCycle(9)
+        time.sleep(0.4)
+
+    except NameError:
+        print("GPIO not defined. Ignoring blow job.\n")
+
+    finally:
+        GPIO.cleanup()
+
 
 # Initialize 'currentname' to trigger only when a new person is identified.
 currentname = "unknown"
@@ -68,9 +102,11 @@ while True:
                 currentname = name
                 print(currentname)
 
-                # TODO: If you'd like to react to something here, do it.
-                # cv2.imwrite("filename.jpg", frame)
-                # do_something(name)
+                # Trigger the blower in a background thread.
+                # NOTE: Not safe if you identify someone multiple times.
+                if (currentname == "Jeff"):
+                    blow_thread = threading.Thread(target=blow, name="blower")
+                    blow_thread.start()
 
         # Update the list of names.
         names.append(name)
